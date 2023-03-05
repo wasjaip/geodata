@@ -20,8 +20,6 @@ GEODATA
 Geospatial Data Collection and "Pre-Analysis" Tools
 """
 
-from __future__ import absolute_import
-
 import logging
 import os
 import shutil
@@ -33,12 +31,17 @@ import numpy as np
 import xarray as xr
 from shapely.geometry import box
 
-from . import config, datasets  # pylint: disable=unused-import
+from . import config, datasets # pylint: disable=unused-import
 
 logger = logging.getLogger(__name__)
 
 
 class Dataset:
+    """Base class for geospatial datasets.
+    
+    Args:
+        **datasetparams: Keyword arguments to pass to the dataset.
+    """
     def __init__(
         self, **datasetparams
     ):  # pylint: disable=too-many-branches,too-many-statements
