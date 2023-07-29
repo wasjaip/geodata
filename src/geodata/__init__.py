@@ -24,9 +24,8 @@ from ._version import __version__
 from .cutout import Cutout
 from .dataset import Dataset
 from .mask import Mask
+from .model import *
 from .plot import *
-
-from . import model  # isort:skip
 
 __author__ = "Michael Davidson (UCSD), William Honaker"
 __copyright__ = "GNU GPL 3 license"
