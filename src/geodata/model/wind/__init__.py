@@ -13,22 +13,4 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
-# pylint: disable=unused-argument
-def dummy_njit(f=None, *args, **kwargs):  #  pylint: disable=keyword-arg-before-vararg
-    """Dummy decorator for numba.njit. Handles the case when numba is not installed.
-
-    Args:
-        f (function): Function to be decorated. If None, returns identity.
-    """
-
-    def decorator(func):
-        return func
-
-    if callable(f):
-        return f
-
-    return decorator
-
-
-# pylint: enable=unused-argument
+from .extrapolate import *
