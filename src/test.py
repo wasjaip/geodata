@@ -7,7 +7,7 @@ dataset = Dataset(
     months=slice(1,1)
 )
 model = WindExtrapolationModel(dataset)
-model.prepare()
+#model.prepare()
 result = model.estimate(
     height=12,
     xs=slice(1, 1),

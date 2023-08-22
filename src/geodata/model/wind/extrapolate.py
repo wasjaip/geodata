@@ -171,6 +171,10 @@ class WindExtrapolationModel(WindBaseModel):
 
         ds = xr.open_mfdataset(self.files)
 
+        alpha = ds["coeffs"][..., 0]
+        beta = ds["coeffs"][..., 1]
+        disph = ds["disph"]
+
         if xs is None:
             xs = ds.coords["lon"]
         if ys is None:
@@ -182,10 +186,11 @@ class WindExtrapolationModel(WindBaseModel):
             logger.info("Using real data for estimation at height %d", height)
             return (ds[f"u{height}m"] ** 2 + ds[f"v{height}m"] ** 2) ** 0.5
 
-        alpha = ds["coeffs"][..., 0]
-        beta = ds["coeffs"][..., 1]
+        # alpha = ds["coeffs"][..., 0]
+        # beta = ds["coeffs"][..., 1]
 
-        result = alpha * np.log((height - ds["disph"]) / np.exp(-beta / alpha))
+        # result = alpha * np.log((height - ds["disph"]) / np.exp(-beta / alpha))
+        result = alpha * np.log((height - disph) / np.exp(-beta / alpha))
         return result.drop_vars("coeff")  # remove unnecessary coordinate
 
     def _estimate_cutout(self, xs: slice, ys: slice, ts: slice) -> xr.Dataset:
