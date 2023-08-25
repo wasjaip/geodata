@@ -184,9 +184,20 @@ class WindExtrapolationModel(WindBaseModel):
 
         alpha = ds["coeffs"][..., 0]
         beta = ds["coeffs"][..., 1]
+        h = np.full(alpha.shape, height)
 
-        result = alpha * np.log((height - ds["disph"]) / np.exp(-beta / alpha))
-        print(ds['disph'].values)
+        exp = np.exp(-beta / alpha).values
+        indices1 = np.argwhere(exp > 0)
+        disph = ds["disph"].values
+        indices2 = np.argwhere(disph > 0)
+
+        if len(indices1) != 0: # decreasing wind speed over heights
+            h[indices1[:, 0], indices1[:, 1], indices1[:, 2]] = 50
+        if len(indices2) != 0: # displacement height is greater than 0
+            h[indices2[:, 0], indices2[:, 1], indices2[:, 2]] = 50
+        
+        result = alpha * np.log((h - ds["disph"]) / np.exp(-beta / alpha))
+
         return result.drop_vars("coeff")  # remove unnecessary coordinate
 
     def _estimate_cutout(self, xs: slice, ys: slice, ts: slice) -> xr.Dataset:
