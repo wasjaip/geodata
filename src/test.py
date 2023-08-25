@@ -10,9 +10,8 @@ model = WindExtrapolationModel(dataset)
 #model.prepare()
 result = model.estimate(
     height=12,
-    xs=slice(1, 1),
-    ys=slice(1, 1),
+    xs=slice(1, 2),
+    ys=slice(1, 2),
     years=slice(2010, 2010),
     months=slice(1, 1)
 )
-print(result)
