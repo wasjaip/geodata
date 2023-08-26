@@ -73,6 +73,7 @@ class Cutout:
             x1, y1, x2, y2 = cutoutparams.pop("bounds")
             cutoutparams.update(xs=slice(x1, x2), ys=slice(y1, y2))
 
+        years = None
         if "years" not in cutoutparams:
             raise ValueError("`years` need to be specified")
         if not isinstance(cutoutparams["years"], slice):
@@ -87,8 +88,6 @@ class Cutout:
         if "months" not in cutoutparams:
             logger.info("No months specified, defaulting to 1-12")
             cutoutparams.update(months=slice(1, 12))
-        else:
-            self.months = months = cutoutparams["months"]
 
         if os.path.isdir(self.cutout_dir):
             # If cutout dir exists, check completness of files
@@ -180,7 +179,8 @@ class Cutout:
         
         # store downloaded cutout files
         self.downloadedFiles = []
-
+        years = cutoutparams["years"]
+        months = cutoutparams["months"]
         step = years.step if years.step else 1
         yrs = range(years.start, years.stop + step, step)
         step = months.step if months.step else 1
