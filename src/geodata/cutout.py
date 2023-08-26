@@ -26,6 +26,7 @@ import logging
 import os
 import sys
 from functools import partial
+from calendar import monthrange
 
 import numpy as np
 import pyproj
@@ -86,6 +87,8 @@ class Cutout:
         if "months" not in cutoutparams:
             logger.info("No months specified, defaulting to 1-12")
             cutoutparams.update(months=slice(1, 12))
+        else:
+            self.months = months = cutoutparams["months"]
 
         if os.path.isdir(self.cutout_dir):
             # If cutout dir exists, check completness of files
@@ -174,6 +177,30 @@ class Cutout:
 
             # Write meta file
             self.meta_clean.unstack("year-month").to_netcdf(self.datasetfn())
+        
+        # store downloaded cutout files
+        self.downloadedFiles = []
+
+        step = years.step if years.step else 1
+        yrs = range(years.start, years.stop + step, step)
+        step = months.step if months.step else 1
+        mos = range(months.start, months.stop + step, step)
+
+        if self.meta_data_config["file_granularity"] == "monthly":
+            mo_tuples = [(yr, mo) for yr in yrs for mo in mos]
+            for mo_tuple in mo_tuples:
+                yr, mo = mo_tuple
+                filename = self.datasetfn(yr, mo)
+                self.downloadedFiles.append(filename)
+       
+        elif self.meta_data_config["file_granularity"] in {"daily", "dailymeans"} or \
+             self.meta_data_config["file_granularity"] == "daily_multiple":
+            mo_tuples = [(yr, mo, monthrange(yr, mo)[1]) for yr in yrs for mo in mos]
+            for mo_tuple in mo_tuples:
+                yr, mo, nodays = mo_tuple
+                for day in range(1, nodays + 1, 1):
+                    filename = self.datasetfn(yr, mo, day)
+                    self.downloadedFiles.append(filename)
 
     def datasetfn(self, *args):
         #    Link to dataset (default to meta.nc)
