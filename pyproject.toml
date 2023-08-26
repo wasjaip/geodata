@@ -49,6 +49,12 @@ build-backend = "setuptools.build_meta"
 [tool.isort]
 profile = "black"
 
+[tool.ruff]
+line-length = 110
+
+[tool.black]
+line-length = 110
+
 [tool.pylint]
     [tool.pylint.master]
     fail-under = 9.0

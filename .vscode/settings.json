@@ -1,5 +1,3 @@
 {
-    "python.linting.pylintEnabled": true,
-    "python.linting.enabled": true,
-    "pylint.importStrategy": "fromEnvironment" // better parsing of dependencies
+    "editor.rulers": [110],
 }
