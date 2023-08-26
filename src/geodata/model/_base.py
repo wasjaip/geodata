@@ -29,7 +29,7 @@ from ..config import model_dir
 from ..cutout import Cutout
 from ..dataset import Dataset
 from ..logging import logger
-
+from calendar import monthrange
 
 class BaseModel(abc.ABC):
     """Base class for geospatial modeling.
@@ -202,7 +202,39 @@ class BaseModel(abc.ABC):
         if isinstance(cutout.months, slice):
             metadata["months"] = cutout.months.start, cutout.months.stop
 
+        metadata["weather_data_config"] = cutout.config
+
         # TODO: nc4 files consistency check needed
+        metadata["files_prepared"] = {}
+        metadata["files_orig"] = {}
+        cutout_downloadedFiles = []
+        step = cutout.years.step if cutout.years.step else 1
+        yrs = range(cutout.years.start, cutout.years.stop + step, step)
+        step = cutout.months.step if cutout.months.step else 1
+        mos = range(cutout.months.start, cutout.months.stop + step, step)
+
+        if cutout.meta_data_config["file_granularity"] == "monthly":
+            mo_tuples = [(yr, mo) for yr in yrs for mo in mos]
+            for mo_tuple in mo_tuples:
+                yr, mo = mo_tuple
+                filename = cutout.datasetfn(yr, mo)
+                cutout_downloadedFiles.append(filename)
+        
+        elif cutout.meta_data_config["file_granularity"] in {"daily", "dailymeans"} or \
+             cutout.meta_data_config["file_granularity"] == "daily_multiple":
+            mo_tuples = [(yr, mo, monthrange(yr, mo)[1]) for yr in yrs for mo in mos]
+            for mo_tuple in mo_tuples:
+                yr, mo, nodays = mo_tuple
+                for day in range(1, nodays + 1, 1):
+                    filename = cutout.datasetfn(yr, mo, day)
+                    cutout_downloadedFiles.append(filename)
+        
+        for fp in cutout_downloadedFiles:
+            with open(fp, "rb") as f:
+                metadata["files_orig"][
+                    str(Path(fp).relative_to(self._ref_path))
+                ] = hashlib.sha256(f.read()).hexdigest()
+
         return metadata
 
     @property

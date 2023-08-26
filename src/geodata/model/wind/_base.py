@@ -98,7 +98,7 @@ class WindBaseModel(BaseModel):
         """Prepare the model from a cutout."""
 
         # TODO: Needs rework to conform to new model interface!!!
-        logger.info("Preparing the model from dataset.")
+        logger.info("Preparing the model from cutout.")
 
         prepared_files = []
         for config, file_path in tqdm(self.source.downloadedFiles):
