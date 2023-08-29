@@ -184,19 +184,16 @@ class WindExtrapolationModel(WindBaseModel):
 
         alpha = ds["coeffs"][..., 0]
         beta = ds["coeffs"][..., 1]
-        h = np.full(alpha.shape, height)
 
-        exp = np.exp(-beta / alpha).values
-        indices1 = np.argwhere(exp > 0)
-        disph = ds["disph"].values
-        indices2 = np.argwhere(disph > 0)
+        exp = np.exp(-beta / alpha)
+        disph = ds["disph"]
+        mask1 = exp > 0
+        mask2 = disph > 0
 
-        if len(indices1) != 0: # decreasing wind speed over heights
-            h[indices1[:, 0], indices1[:, 1], indices1[:, 2]] = 50
-        if len(indices2) != 0: # displacement height is greater than 0
-            h[indices2[:, 0], indices2[:, 1], indices2[:, 2]] = 50
+        height = np.where(mask1, 50, height) # decreasing wind speed over heights
+        height = np.where(mask2, 50, height) # displacement height is greater than 0
         
-        result = alpha * np.log((h - ds["disph"]) / np.exp(-beta / alpha))
+        result = alpha * np.log((height - disph) / exp)
 
         return result.drop_vars("coeff")  # remove unnecessary coordinate
 
