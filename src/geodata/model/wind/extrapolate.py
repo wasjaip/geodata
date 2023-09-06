@@ -110,7 +110,15 @@ class WindExtrapolationModel(WindBaseModel):
         disph = ds["disph"].values
 
         variables = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
+        for key in ds:
+            print(key)
+        for f in HEIGHTS:
+            print(f)
+            print(f in ds)
         heights = np.array([HEIGHTS[f] for f in variables]) - disph[..., np.newaxis]
+        print(disph)
+        print(variables)
+        print(heights)
 
         logger.debug("Selected variables: %s", variables)
         logger.debug("Shape of heights: %s", heights.shape)
@@ -197,7 +205,53 @@ class WindExtrapolationModel(WindBaseModel):
 
         return result.drop_vars("coeff")  # remove unnecessary coordinate
 
-    def _estimate_cutout(self, xs: slice, ys: slice, ts: slice) -> xr.Dataset:
+    def _estimate_cutout(
+        self,
+        height: int,
+        years: slice,
+        months: Optional[slice] = None,
+        xs: Optional[slice] = None,
+        ys: Optional[slice] = None,
+        use_real_data: Optional[bool] = False,
+    ) -> xr.Dataset:
         raise NotImplementedError
+        assert height > 0, "Height must be greater than 0."
+
+        if months is None:
+            months = slice(1, 12)
+
+        start_time = pd.Timestamp(year=years.start, month=months.start, day=1)
+        end_time = pd.Timestamp(
+            year=years.stop, month=months.stop, day=31, hour=23, minute=59, second=59
+        )
+
+        ds = xr.open_mfdataset(self.files)
+
+        if xs is None:
+            xs = ds.coords["lon"]
+        if ys is None:
+            ys = ds.coords["lat"]
+
+        ds = ds.sel(lon=xs, lat=ys, time=slice(start_time, end_time))
+
+        if height in HEIGHTS.values() and use_real_data:
+            logger.info("Using real data for estimation at height %d", height)
+            return (ds[f"u{height}m"] ** 2 + ds[f"v{height}m"] ** 2) ** 0.5
+
+        alpha = ds["coeffs"][..., 0]
+        beta = ds["coeffs"][..., 1]
+
+        exp = np.exp(-beta / alpha)
+        disph = ds["disph"]
+        mask1 = exp > 0
+        mask2 = disph > 0
+
+        h = np.where(mask1, 50, height) # decreasing wind speed over heights
+        h = np.where(mask2, 50, height) # displacement height is greater than 0
+        
+        result = alpha * np.log((h - disph) / exp)
+
+        return result.drop_vars("coeff")  # remove unnecessary coordinate
+
 
     # pylint: enable=arguments-differ

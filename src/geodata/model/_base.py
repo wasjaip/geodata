@@ -208,11 +208,12 @@ class BaseModel(abc.ABC):
         metadata["files_prepared"] = {}
         metadata["files_orig"] = {}
         
-        for fp in cutout.downloadedFiles:
-            with open(fp, "rb") as f:
-                metadata["files_orig"][
-                    str(Path(fp).relative_to(self._ref_path))
-                ] = hashlib.sha256(f.read()).hexdigest()
+        for c, fp in cutout.downloadedFiles:
+            if c == metadata["weather_data_config"]:
+                with open(fp, "rb") as f:
+                    metadata["files_orig"][
+                        str(Path(fp).relative_to(self._ref_path))
+                    ] = hashlib.sha256(f.read()).hexdigest()
 
         return metadata
 

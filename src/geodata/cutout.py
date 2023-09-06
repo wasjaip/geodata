@@ -191,7 +191,7 @@ class Cutout:
             for mo_tuple in mo_tuples:
                 yr, mo = mo_tuple
                 filename = self.datasetfn(yr, mo)
-                self.downloadedFiles.append(filename)
+                self.downloadedFiles.append((self.config, filename))
        
         elif self.meta_data_config["file_granularity"] in {"daily", "dailymeans"} or \
              self.meta_data_config["file_granularity"] == "daily_multiple":
@@ -200,7 +200,7 @@ class Cutout:
                 yr, mo, nodays = mo_tuple
                 for day in range(1, nodays + 1, 1):
                     filename = self.datasetfn(yr, mo, day)
-                    self.downloadedFiles.append(filename)
+                    self.downloadedFiles.append((self.config, filename))
 
     def datasetfn(self, *args):
         #    Link to dataset (default to meta.nc)
