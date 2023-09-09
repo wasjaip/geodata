@@ -206,7 +206,6 @@ class WindExtrapolationModel(WindBaseModel):
         ys: Optional[slice] = None,
         use_real_data: Optional[bool] = False,
     ) -> xr.Dataset:
-        raise NotImplementedError
         assert height > 0, "Height must be greater than 0."
 
         if months is None:
@@ -224,7 +223,7 @@ class WindExtrapolationModel(WindBaseModel):
         if ys is None:
             ys = ds.coords["lat"]
 
-        ds = ds.sel(lon=xs, lat=ys, time=slice(start_time, end_time))
+        ds = ds.sel(x=xs, y=ys, time=slice(start_time, end_time))
 
         if height in HEIGHTS.values() and use_real_data:
             logger.info("Using real data for estimation at height %d", height)
