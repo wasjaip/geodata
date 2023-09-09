@@ -197,17 +197,16 @@ class BaseModel(abc.ABC):
         metadata["module"] = cutout.dataset_module
         metadata["from_dataset"] = False
 
-        if isinstance(cutout.years, slice):
-            metadata["years"] = cutout.years.start, cutout.years.stop
-        if isinstance(cutout.months, slice):
-            metadata["months"] = cutout.months.start, cutout.months.stop
+        metadata["years"] = cutout.years.start, cutout.years.stop
+        metadata["months"] = cutout.months.start, cutout.months.stop
 
         metadata["weather_data_config"] = cutout.config
+        # metadata tracks what files we use
 
         # TODO: nc4 files consistency check needed
         metadata["files_prepared"] = {}
         metadata["files_orig"] = {}
-        
+
         for c, fp in cutout.downloadedFiles:
             if c == metadata["weather_data_config"]:
                 with open(fp, "rb") as f:
@@ -298,13 +297,26 @@ class BaseModel(abc.ABC):
         for fp in (
             self._prepare_dataset() if self.from_dataset else self._prepare_cutout()
         ):
+            if not self.from_dataset: # cutout's prepared files
+                fp = fp[1] # only filepath, not config
             with open(self._path / fp, "rb") as f:
                 self.metadata["files_prepared"][fp] = hashlib.sha256(
                     f.read()
                 ).hexdigest()
 
+        if not self.from_dataset:
+            temp = {}
+            for key in self.metadata.keys():
+                if key != 'module':
+                    temp[key] = self.metadata[key]
+                else:
+                    temp[key] = self.metadata[key].__name__.split('.')[-1]
+
         with open(self._path / "meta.json", "w", encoding="utf-8") as f:
-            json.dump(self.metadata, f, indent=4)
+            if self.from_dataset:
+                json.dump(self.metadata, f, indent=4)
+            else:
+                json.dump(temp, f, indent=4)
 
         logger.info("Finished preparing model.")
 

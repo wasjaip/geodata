@@ -26,7 +26,6 @@ import logging
 import os
 import sys
 from functools import partial
-from calendar import monthrange
 
 import numpy as np
 import pyproj
@@ -73,7 +72,6 @@ class Cutout:
             x1, y1, x2, y2 = cutoutparams.pop("bounds")
             cutoutparams.update(xs=slice(x1, x2), ys=slice(y1, y2))
 
-        years = None
         if "years" not in cutoutparams:
             raise ValueError("`years` need to be specified")
         if not isinstance(cutoutparams["years"], slice):
@@ -177,30 +175,16 @@ class Cutout:
             # Write meta file
             self.meta_clean.unstack("year-month").to_netcdf(self.datasetfn())
         
-        # store downloaded cutout files
-        self.downloadedFiles = []
-        years = cutoutparams["years"]
-        months = cutoutparams["months"]
-        step = years.step if years.step else 1
-        yrs = range(years.start, years.stop + step, step)
-        step = months.step if months.step else 1
-        mos = range(months.start, months.stop + step, step)
+        step = cutoutparams["years"].step if cutoutparams["years"].step else 1
+        yrs = range(cutoutparams["years"].start, cutoutparams["years"].stop + step, step)
+        mos = range(cutoutparams["months"].start, cutoutparams["months"].stop + step, step)
 
-        if self.meta_data_config["file_granularity"] == "monthly":
-            mo_tuples = [(yr, mo) for yr in yrs for mo in mos]
-            for mo_tuple in mo_tuples:
-                yr, mo = mo_tuple
-                filename = self.datasetfn(yr, mo)
-                self.downloadedFiles.append((self.config, filename))
-       
-        elif self.meta_data_config["file_granularity"] in {"daily", "dailymeans"} or \
-             self.meta_data_config["file_granularity"] == "daily_multiple":
-            mo_tuples = [(yr, mo, monthrange(yr, mo)[1]) for yr in yrs for mo in mos]
-            for mo_tuple in mo_tuples:
-                yr, mo, nodays = mo_tuple
-                for day in range(1, nodays + 1, 1):
-                    filename = self.datasetfn(yr, mo, day)
-                    self.downloadedFiles.append((self.config, filename))
+        mo_tuples = [(yr, mo) for yr in yrs for mo in mos]
+        self.downloadedFiles = []
+        for mo_tuple in mo_tuples:
+            yr, mo = mo_tuple
+            filename = self.datasetfn(yr, mo)
+            self.downloadedFiles.append((self.config, filename))
 
     def datasetfn(self, *args):
         #    Link to dataset (default to meta.nc)
@@ -299,12 +283,18 @@ class Cutout:
     @property
     def years(self):
         """Cutout's covered years as slice object."""
-        return slice(*self.coords["year"].values)
+        if len(self.coords["year"].values) > 1:
+            return slice(*self.coords["year"].values.tolist())
+        else:
+            return slice(*self.coords["year"].values.tolist(), *self.coords["year"].values.tolist())
 
     @property
     def months(self):
         """Cutout's covered months as slice object."""
-        return slice(*self.coords["month"].values)
+        if len(self.coords["month"].values) > 1:
+            return slice(*self.coords["month"].values.tolist())
+        else:
+            return slice(*self.coords["month"].values.tolist(), *self.coords["month"].values.tolist())
 
     def grid_coordinates(self):
         xs, ys = np.meshgrid(self.coords["x"], self.coords["y"])

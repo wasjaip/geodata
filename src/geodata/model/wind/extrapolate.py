@@ -110,15 +110,7 @@ class WindExtrapolationModel(WindBaseModel):
         disph = ds["disph"].values
 
         variables = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
-        for key in ds:
-            print(key)
-        for f in HEIGHTS:
-            print(f)
-            print(f in ds)
         heights = np.array([HEIGHTS[f] for f in variables]) - disph[..., np.newaxis]
-        print(disph)
-        print(variables)
-        print(heights)
 
         logger.debug("Selected variables: %s", variables)
         logger.debug("Shape of heights: %s", heights.shape)

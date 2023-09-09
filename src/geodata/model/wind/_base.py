@@ -72,6 +72,7 @@ class WindBaseModel(BaseModel):
         prepared_files = []
         for file_path in tqdm(self.metadata["files_orig"], dynamic_ncols=True):
             orig_ds_path = self._ref_path / file_path
+            #print(orig_ds_path): /Users/apple/.local/geodata/merra2/2010/01/MERRA2_300.tavg1_2d_slv_flx_Nx.20100101.nc4
             ds = xr.open_dataset(orig_ds_path)
             try:
                 ds = self._prepare_fn(ds)
@@ -85,6 +86,7 @@ class WindBaseModel(BaseModel):
             ds_path: Path = (
                 self._path / "nc4" / Path(file_path).with_suffix(".params.nc4").name
             )
+            #print(ds_path): /Users/apple/.local/geodata/models/wind/merra2/nc4/MERRA2_300.tavg1_2d_slv_flx_Nx.20100101.params.nc4
             ds_path.parent.mkdir(parents=True, exist_ok=True)
             ds.to_netcdf(ds_path)
 
@@ -103,7 +105,6 @@ class WindBaseModel(BaseModel):
         prepared_files = []
         for config, file_path in tqdm(self.source.downloadedFiles):
             orig_ds_path = Path(file_path)
-
             ds = xr.open_dataset(orig_ds_path)
             try:
                 ds = self._prepare_fn(ds)
@@ -114,10 +115,13 @@ class WindBaseModel(BaseModel):
                 )
                 continue
 
-            ds_path = orig_ds_path.relative_to(self._ref_path).with_suffix(
-                ".params.nc4"
+            # ds_path = (
+            #     orig_ds_path.relative_to(self._ref_path).with_suffix(".params.nc4").name
+            # )
+            # ds_path = self._path / "nc4"
+            ds_path: Path = (
+                self._path / "nc4" / Path(file_path).with_suffix(".params.nc4").name
             )
-            ds_path = self._path / "nc4" / ds_path
             ds.to_netcdf(ds_path)
 
             # (config, parameter_filepath, original_dataset_filepath)
