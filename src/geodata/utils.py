@@ -38,9 +38,7 @@ def make_optional_progressbar(show, prefix, max_value):
         ]
         if not prefix.endswith(": "):
             prefix = prefix.strip() + ": "
-        maybe_progressbar = pgb.ProgressBar(
-            prefix=prefix, widgets=widgets, max_value=max_value
-        )
+        maybe_progressbar = pgb.ProgressBar(prefix=prefix, widgets=widgets, max_value=max_value)
     else:
         maybe_progressbar = lambda x: x  # pylint: disable=unnecessary-lambda-assignment
 

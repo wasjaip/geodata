@@ -56,9 +56,7 @@ def log_law(ds, to_height, from_height, from_name):
     [3] S. Emeis, Wind Energy Meteorology (Springer, Berlin, 2013).
     """
     vonk = 0.4
-    wnd_spd = ds[from_name] + (
-        ds["ustar"] / vonk * np.log((to_height - ds["disph"]) / ds[from_height])
-    )
+    wnd_spd = ds[from_name] + (ds["ustar"] / vonk * np.log((to_height - ds["disph"]) / ds[from_height]))
     wnd_spd.attrs.update(
         {
             "long_name": f"extrapolated {to_height} m wind speed using log (integration) law",
@@ -109,9 +107,7 @@ def psi_linearexp(z, ds):
     )
     ds["psim"].values[0.5 < ds["a"]] = -A * (
         ds["a"].values[0.5 < ds["a"]]
-        + B
-        * (ds["a"].values[0.5 < ds["a"]] - C / D)
-        * np.exp(-D * ds["a"].values[0.5 < ds["a"]])
+        + B * (ds["a"].values[0.5 < ds["a"]] - C / D) * np.exp(-D * ds["a"].values[0.5 < ds["a"]])
         + B * C / D
     )
     ds["psim"].values[ds["a"] <= 0] = 0
@@ -140,14 +136,10 @@ def psi_linearexpconst(z, ds, const=7):
     )
     ds["psim"].values[0.5 < ds["a"]] = -A * (
         ds["a"].values[0.5 < ds["a"]]
-        + B
-        * (ds["a"].values[0.5 < ds["a"]] - C / D)
-        * np.exp(-D * ds["a"].values[0.5 < ds["a"]])
+        + B * (ds["a"].values[0.5 < ds["a"]] - C / D) * np.exp(-D * ds["a"].values[0.5 < ds["a"]])
         + B * C / D
     )
-    ds["psim"].values[ds["a"] > const] = -A * (
-        const + B * (const - C / D) * np.exp(-D * const) + B * C / D
-    )
+    ds["psim"].values[ds["a"] > const] = -A * (const + B * (const - C / D) * np.exp(-D * const) + B * C / D)
     ds["psim"].values[ds["a"] <= 0] = 0
     return ds["psim"]
 
@@ -168,12 +160,8 @@ def L_vph(ds):
     p0 = 1e5  # standard air pressure
 
     ds["p"] = ds["rhoa"] * Rd * ds["tlml"]
-    ds["vphflux"] = (
-        ds["hflux"] + 0.61 * CPD / Le * ds["tlml"] * (p0 / ds["p"]) ** kp * ds["eflux"]
-    )
-    ds["L"] = -(ds["tlml"] * ds["ustar"] ** 3 * CPD * ds["rhoa"]) / (
-        vonk * grav * ds["vphflux"]
-    )
+    ds["vphflux"] = ds["hflux"] + 0.61 * CPD / Le * ds["tlml"] * (p0 / ds["p"]) ** kp * ds["eflux"]
+    ds["L"] = -(ds["tlml"] * ds["ustar"] ** 3 * CPD * ds["rhoa"]) / (vonk * grav * ds["vphflux"])
     return ds["L"]
 
 
@@ -186,9 +174,7 @@ def winddir(ds):
     return ds["winddir"]
 
 
-def _log_law_flux(
-    ds, to_height, from_height, from_name, psifn, Lfn=L_vph
-):  # pylint: disable=unused-argument
+def _log_law_flux(ds, to_height, from_height, from_name, psifn, Lfn=L_vph):  # pylint: disable=unused-argument
     """Compute logarithmic (integration) law given stability correction fn in terms of Obukhov length (derived from heat flux) [1]
     Called by: log_law_flux_**
 
@@ -201,8 +187,7 @@ def _log_law_flux(
     ds["L"] = L_vph(ds)
 
     wnd_spd = ds[from_name] + ds["ustar"] / vonk * (
-        np.log((to_height - ds["disph"]) / ds[from_height])
-        - psifn(to_height, ds[["L", "roughness"]])
+        np.log((to_height - ds["disph"]) / ds[from_height]) - psifn(to_height, ds[["L", "roughness"]])
     )
     wnd_spd.attrs.update(
         {
@@ -233,9 +218,7 @@ Main call (from convert.convert_wind)
 """
 
 
-def extrapolate_wind_speed(
-    ds, to_height, extrap_fn=log_ratio, from_height=None, var_height=None
-):
+def extrapolate_wind_speed(ds, to_height, extrap_fn=log_ratio, from_height=None, var_height=None):
     """Extrapolate the wind speed from a given height above ground to another.
 
     If ds already contains a key refering to wind speeds at the desired to_height,
@@ -293,16 +276,12 @@ def extrapolate_wind_speed(
     if not from_height is None:
         # passed a from_height
         if not var_height is None:
-            raise AssertionError(
-                "Cannot pass both from_height and var_height to extrapolate_wind_speed"
-            )
+            raise AssertionError("Cannot pass both from_height and var_height to extrapolate_wind_speed")
         from_name = "wnd{h:0d}m".format(h=int(from_height))
         ds["from_height"] = from_height
 
         wnd_spd = extrap_fn(ds, to_height, "from_height", from_name)
-        wnd_spd.attrs["long_name"] = (
-            wnd_spd.attrs["long_name"] + ", " + f"from fixed height = {from_height}"
-        )
+        wnd_spd.attrs["long_name"] = wnd_spd.attrs["long_name"] + ", " + f"from fixed height = {from_height}"
 
     elif not var_height is None:
         # passed a variable height (eg lml)

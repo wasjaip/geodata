@@ -36,7 +36,7 @@ dynamic = ["version", "readme"]
 [project.optional-dependencies]
 download = ["cdsapi>=0.5.0"]
 dev = ["black", "isort", "pytest", "pylint"]
-docs = ["sphinx", "myst-parser", "sphinx-book-theme"]
+docs = ["sphinx", "myst-parser", "sphinx-book-theme", "myst-nb"]
 
 [tool.setuptools.dynamic]
 version = {attr = "geodata._version.__version__"}

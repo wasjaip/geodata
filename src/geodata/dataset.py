@@ -39,9 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class Dataset:
-    def __init__(
-        self, **datasetparams
-    ):  # pylint: disable=too-many-branches,too-many-statements
+    def __init__(self, **datasetparams):  # pylint: disable=too-many-branches,too-many-statements
         if "module" not in datasetparams:
             raise ValueError("`module` needs to be specified")
         if "weather_data_config" not in datasetparams:
@@ -52,9 +50,7 @@ class Dataset:
         self.weatherconfig = self.weather_data_config[self.config]
 
         if "datadir" in datasetparams:
-            logger.info(
-                "Manual data directory entry not supported. Change in config.py file."
-            )
+            logger.info("Manual data directory entry not supported. Change in config.py file.")
         # 	self.datadir = datasetparams.pop('datadir')
         # else:
         self.datadir = self.dataset_module.datadir
@@ -152,9 +148,7 @@ class Dataset:
                                 (
                                     self.config,
                                     filename,
-                                    self.datasetfn(
-                                        self.weatherconfig["url"], yr, mo, day
-                                    ),
+                                    self.datasetfn(self.weatherconfig["url"], yr, mo, day),
                                 )
                             )
                     else:
@@ -207,12 +201,8 @@ class Dataset:
                                 (
                                     self.config,
                                     filename,
-                                    self.datasetfn(
-                                        self.weatherconfig["url"][0], yr, mo, day
-                                    ),
-                                    self.datasetfn(
-                                        self.weatherconfig["url"][1], yr, mo, day
-                                    ),
+                                    self.datasetfn(self.weatherconfig["url"][0], yr, mo, day),
+                                    self.datasetfn(self.weatherconfig["url"][1], yr, mo, day),
                                 )
                             )
                     else:
@@ -266,11 +256,8 @@ class Dataset:
                     self.downloadedFiles.append((self.config, filename))
 
         if not self.prepared:
-
             if {"xs", "ys"}.difference(datasetparams):
-                logger.warning(
-                    "Arguments `xs` and `ys` not used in preparing dataset. Defaulting to global."
-                )
+                logger.warning("Arguments `xs` and `ys` not used in preparing dataset. Defaulting to global.")
 
             logger.info("%s files not completed.", incomplete_count)
             ## Main preparation call for metadata
@@ -334,14 +321,11 @@ class Dataset:
             else:
                 self.toDownload = [self.toDownload[0]]
                 self.totalFiles = [self.totalFiles[0]]
-                self.testDataset = (
-                    True  # pylint: disable=attribute-defined-outside-init
-                )
+                self.testDataset = True  # pylint: disable=attribute-defined-outside-init
 
         api_func = self.weatherconfig["api_func"]
 
         if self.module == "era5":
-
             api_func(
                 self.toDownload,
                 self.bounds,
@@ -352,7 +336,6 @@ class Dataset:
             )
 
         elif self.module == "merra2":
-
             api_func(
                 self.toDownload,
                 self.weatherconfig["file_granularity"],
@@ -421,9 +404,7 @@ class Dataset:
 
     @property
     def extent(self):
-        return list(self.coords["x"].values[[0, -1]]) + list(
-            self.coords["y"].values[[-1, 0]]
-        )
+        return list(self.coords["x"].values[[0, -1]]) + list(self.coords["y"].values[[-1, 0]])
 
     def grid_coordinates(self):
         xs, ys = np.meshgrid(self.coords["x"], self.coords["y"])
