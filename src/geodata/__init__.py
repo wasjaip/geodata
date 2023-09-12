@@ -20,8 +20,6 @@ GEODATA
 Geospatial Data Collection and "Pre-Analysis" Tools
 """
 
-from __future__ import absolute_import
-
 
 # pylint: disable=wrong-import-position
 from ._version import __version__

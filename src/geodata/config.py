@@ -16,10 +16,10 @@
 import logging
 import os
 from pathlib import Path
+from typing import Literal
 
 logger = logging.getLogger(__name__)
 DATASET_ROOT_PATH = Path(os.environ.get("GETDATA_ROOT", Path.home() / ".local" / "geodata")).resolve()
-
 
 gebco_path = DATASET_ROOT_PATH / "gebco"
 cutout_dir = DATASET_ROOT_PATH / "cutouts"
@@ -42,3 +42,5 @@ MASK_DIR = str(MASK_DIR)
 # weather_dataset = {'module': 'cordex', 'model': 'MPI-M-MPI-ESM-LR'}
 weather_dataset = {"module": "era5"}
 untrimmable_datasets = {"era5"}
+
+ModuleType = Literal["era5", "merra2"]
