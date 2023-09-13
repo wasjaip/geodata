@@ -192,7 +192,7 @@ class WindExtrapolationModel(WindBaseModel):
 
         h = np.where(mask1, 50, height) # decreasing wind speed over heights
         h = np.where(mask2, 50, height) # displacement height is greater than 0
-        
+
         result = alpha * np.log((h - disph) / exp)
 
         return result.drop_vars("coeff")  # remove unnecessary coordinate
