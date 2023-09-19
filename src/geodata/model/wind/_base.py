@@ -48,7 +48,7 @@ from tqdm.auto import tqdm
 from ...logging import logger
 from .._base import BaseModel
 
-HEIGHTS = {"u50m": 50, "u10m": 10, "u2m": 2}
+HEIGHTS = {"u50m": 50, "u10m": 10, "u2m": 2, "u100m": 100}
 
 
 class WindBaseModel(BaseModel):
@@ -61,7 +61,7 @@ class WindBaseModel(BaseModel):
     """
 
     type: str = "wind"
-    SUPPROTED_WEATHER_DATA_CONFIGS = ["slv_flux_hourly"]
+    SUPPROTED_WEATHER_DATA_CONFIGS = ["slv_flux_hourly", "wind_solar_hourly"]
     _prepare_fn: Callable[[xr.Dataset], xr.Dataset]
 
     def _prepare_dataset(self) -> list[tuple[str, Path]]:
@@ -74,6 +74,7 @@ class WindBaseModel(BaseModel):
             orig_ds_path = self._ref_path / file_path
             #print(orig_ds_path): /Users/apple/.local/geodata/merra2/2010/01/MERRA2_300.tavg1_2d_slv_flx_Nx.20100101.nc4
             ds = xr.open_dataset(orig_ds_path)
+            print(ds)
             try:
                 ds = self._prepare_fn(ds)
             except SystemError:

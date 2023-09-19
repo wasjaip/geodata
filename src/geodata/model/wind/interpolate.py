@@ -14,6 +14,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Optional
+from scipy.interpolate import CubicSpline
 
 import numpy as np
 import pandas as pd
@@ -32,7 +33,7 @@ except ImportError:
 
 
 @njit(parallel=True)
-def _compute_wind_speed_ext(
+def _compute_wind_speed_int(
     heights: np.ndarray, speeds: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute wind speed from heights and speeds.
@@ -45,22 +46,18 @@ def _compute_wind_speed_ext(
         tuple[np.ndarray, np.ndarray]: Tuple of coefficients (alpha, beta) and residuals.
     """
     # pylint: disable=not-an-iterable
-    coeffs = np.empty(shape=heights.shape[:-1] + (2,))
-    residuals = np.empty_like(speeds)
+    n_coeffs = 4
+    coeffs = np.empty(shape=heights.shape[:-1] + (heights.shape[-1] - 1, n_coeffs))
+
     for time in prange(heights.shape[0]):
         for lat in prange(heights.shape[1]):
             for lon in prange(heights.shape[2]):
-                a = heights[time, lat, lon]
-                a = np.stack((a, np.ones_like(a)), axis=-1)
-                b = np.abs(speeds[time, lat, lon])
-
-                coeff, residual, _, _ = np.linalg.lstsq(a, b)
-
-                coeffs[time, lat, lon] = coeff
-                residuals[time, lat, lon] = residual
-    # pylint: enable=not-an-iterable
-
-    return coeffs, residuals
+                h = heights[time, lat, lon]
+                v = speeds[time, lat, lon]
+                cs = CubicSpline(h, v)
+                coeffs[time, lat, lon] = cs.c.T
+                
+    return coeffs
 
 
 class WindInterpolationModel(WindBaseModel):
@@ -93,7 +90,7 @@ class WindInterpolationModel(WindBaseModel):
         ds: xr.Dataset,
         compute_lml: bool = True,
         half_precision: bool = True,
-        compute_residuals: bool = True,
+        # compute_residuals: bool = True,
     ) -> xr.Dataset:
         """Compute wind speed from for MERRA2 dataset.
 
@@ -135,19 +132,19 @@ class WindInterpolationModel(WindBaseModel):
             )
         speeds = np.stack(speeds, axis=-1).astype(heights.dtype)
 
-        coeffs, residuals = _compute_wind_speed_ext(log_heights, speeds)
+        # coeffs, residuals = _compute_wind_speed_ext(log_heights, speeds)
+        coeffs = _compute_wind_speed_int(log_heights, speeds)
 
+        # if half_precision:
+        #     coeffs = coeffs.astype("float32")
+        #     residuals = residuals.astype("float32")
+        # ds = ds.assign_coords(coeff=["alpha", "beta"])
         if half_precision:
             coeffs = coeffs.astype("float32")
-            residuals = residuals.astype("float32")
-        ds = ds.assign_coords(coeff=["alpha", "beta"])
+        ds = ds.assign_coords(coeff=["coeffs"])
         ds["coeffs"] = (("time", "lat", "lon", "coeff"), coeffs)
 
-        if compute_residuals:
-            ds = ds.assign_coords(residual=variables)
-            ds["residuals"] = (("time", "lat", "lon", "residual"), residuals)
-
-        return ds[["coeffs", "residuals"]] if compute_residuals else ds[["coeffs"]]
+        return ds[["coeffs"]]
 
     # pylint: disable=arguments-differ
     def _estimate_dataset(
@@ -182,20 +179,23 @@ class WindInterpolationModel(WindBaseModel):
             logger.info("Using real data for estimation at height %d", height)
             return (ds[f"u{height}m"] ** 2 + ds[f"v{height}m"] ** 2) ** 0.5
 
-        alpha = ds["coeffs"][..., 0]
-        beta = ds["coeffs"][..., 1]
+        # alpha = ds["coeffs"][..., 0]
+        # beta = ds["coeffs"][..., 1]
 
-        exp = np.exp(-beta / alpha)
-        disph = ds["disph"]
-        mask1 = exp > 0
-        mask2 = disph > 0
+        # exp = np.exp(-beta / alpha)
+        # disph = ds["disph"]
+        # mask1 = exp > 0
+        # mask2 = disph > 0
 
-        h = np.where(mask1, 50, height) # decreasing wind speed over heights
-        h = np.where(mask2, 50, height) # displacement height is greater than 0
+        # h = np.where(mask1, 50, height) # decreasing wind speed over heights
+        # h = np.where(mask2, 50, height) # displacement height is greater than 0
 
-        result = alpha * np.log((h - disph) / exp)
-
-        return result.drop_vars("coeff")  # remove unnecessary coordinate
+        # result = alpha * np.log((h - disph) / exp)
+        return ds["coeffs"]
+        coeffs = ds["coeffs"]
+        h_index = np.argmin(np.abs(HEIGHTS - height))
+        return ds["interpolated_speeds"][..., h_index]
+        # return result.drop_vars("coeff")  # remove unnecessary coordinate
 
     def _estimate_cutout(
         self,
