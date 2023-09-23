@@ -49,6 +49,15 @@ from ...logging import logger
 from .._base import BaseModel
 
 HEIGHTS = {"u50m": 50, "u10m": 10, "u2m": 2}
+LEVEL_TO_HEIGHT = {
+    131: 169.50,
+    132: 136.62,
+    133: 106.54,
+    134: 79.04,
+    135: 53.92,
+    136: 30.96,
+    137: 10
+}
 
 
 class WindBaseModel(BaseModel):
@@ -61,7 +70,7 @@ class WindBaseModel(BaseModel):
     """
 
     type: str = "wind"
-    SUPPROTED_WEATHER_DATA_CONFIGS = ["slv_flux_hourly", "wind_solar_hourly"]
+    SUPPROTED_WEATHER_DATA_CONFIGS = ["slv_flux_hourly", "wind_3d_hourly"]
     _prepare_fn: Callable[[xr.Dataset], xr.Dataset]
 
     def _prepare_dataset(self) -> list[tuple[str, Path]]:

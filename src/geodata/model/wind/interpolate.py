@@ -21,7 +21,7 @@ import pandas as pd
 import xarray as xr
 
 from ...logging import logger
-from ._base import HEIGHTS, WindBaseModel
+from ._base import HEIGHTS, LEVEL_TO_HEIGHT, WindBaseModel
 
 try:
     from numba import njit, prange
@@ -34,8 +34,8 @@ except ImportError:
 
 @njit(parallel=True)
 def _compute_wind_speed_int(
-    heights: np.ndarray, speeds: np.ndarray, height: int
-) -> tuple[np.ndarray, np.ndarray]:
+    heights: np.ndarray, speeds: np.ndarray
+):
     """Compute wind speed from heights and speeds.
 
     Args:
@@ -46,23 +46,40 @@ def _compute_wind_speed_int(
         tuple[np.ndarray, np.ndarray]: Tuple of coefficients (alpha, beta) and residuals.
     """
     # pylint: disable=not-an-iterable
-    # n_coeffs = 4
-    # coeffs = np.empty(shape=heights.shape[:-1] + (heights.shape[-1] - 1, n_coeffs))
+    # time: level: latitude: longitude
+    # speed.values[0, :, 20, 20] time lat lon
+    n = len(heights)
+    coef = np.zeros(speeds.shape)
 
-    # for lon in prange(heights.shape[0]):
-    #     for lat in prange(heights.shape[1]):
-    #         for time in prange(heights.shape[2]):
-    #             h = heights[time, lat, lon]
-    #             v = speeds[time, lat, lon]
-    #             cs = CubicSpline(h, v)
-    #             coeffs[time, lat, lon] = cs.c.T
-                
-    # return coeffs
-    cs = CubicSpline(heights, speeds, axis=1)
-    interpolated_wind_speed = cs(height)
-    
-    return interpolated_wind_speed
+    for time in prange(speeds.shape[0]):
+        for lat in prange(speeds.shape[2]):
+            for lon in prange(speeds.shape[3]):
+                for i in range(n):
+                    term = speeds[time, i, lat, lon]
+                    for j in range(n):
+                        if j != i:
+                            term = term / (heights[i] - heights[j])
+                    coef[time, i, lat, lon] = term
+    return coef
 
+@njit(parallel=True)
+def _estimate_wind_speed_int(
+    coeffs: np.ndarray, height: float, shape: tuple, n: int, level_heights: np.ndarray
+):
+    # pylint: disable=not-an-iterable
+    result = np.zeros((shape[0], shape[2], shape[3]), dtype=np.float32)
+
+    for time in prange(shape[0]):
+        for lat in prange(shape[2]):
+            for lon in prange(shape[3]):
+                for i in range(n):
+                    term = coeffs[time, i, lat, lon]
+                    for j in range(n):
+                        if j != i:
+                            term = term * (height - level_heights[j])
+                    result[time, lat, lon] += term[0]
+
+    return result
 
 class WindInterpolationModel(WindBaseModel):
     """Wind speed estimation based on the an extrapolation model.
@@ -105,9 +122,8 @@ class WindInterpolationModel(WindBaseModel):
         Returns:
             xr.Dataset: Dataset with wind speed.
         """
-        return ds
-        variables = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
-        heights = np.array([HEIGHTS[f] for f in variables])
+        variables = [var for var in ds if var.replace("u", "v") in ds and var == 'u']
+        heights = np.array(list(LEVEL_TO_HEIGHT.values()))
 
         logger.debug("Selected variables: %s", variables)
         logger.debug("Shape of heights: %s", heights.shape)
@@ -128,8 +144,9 @@ class WindInterpolationModel(WindBaseModel):
 
         if half_precision:
             coeffs = coeffs.astype("float32")
-        ds = ds.assign_coords(coeff=["coeffs"])
-        ds["coeffs"] = (("time", "lat", "lon", "coeff"), coeffs)
+
+        ds = ds.assign_coords(coefficient=["coefficient"])
+        ds["coeffs"] = (("time", "level", "latitude", "longitude", "coefficient"), coeffs)
 
         return ds[["coeffs"]]
 
@@ -152,37 +169,41 @@ class WindInterpolationModel(WindBaseModel):
         end_time = pd.Timestamp(
             year=years.stop, month=months.stop, day=31, hour=23, minute=59, second=59
         )
-        print(self.files)
-        ds = xr.open_mfdataset(self.files)
-        print(1)
-        if xs is None:
-            xs = ds.coords["lon"]
-        if ys is None:
-            ys = ds.coords["lat"]
-        return
 
-        ds = ds.sel(lon=xs, lat=ys, time=slice(start_time, end_time))
+        ds = xr.open_mfdataset(self.files)
+
+        if xs is None:
+            xs = ds.coords["longitude"]
+        if ys is None:
+            ys = ds.coords["latitude"]
+
+        ds = ds.sel(longitude=xs, latitude=ys, time=slice(start_time, end_time))
 
         if height in HEIGHTS.values() and use_real_data:
             logger.info("Using real data for estimation at height %d", height)
             return (ds[f"u{height}m"] ** 2 + ds[f"v{height}m"] ** 2) ** 0.5
 
-        u_var = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
-        v_var = [u.replace("u", "v") for u in u_var]
-        print(u_var, v_var)
-        return
-        variables = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
-        heights = np.array([HEIGHTS[f] for f in variables])
-        coeffs = ds["coeffs"]
-        result = np.empty_like(ds['time'])
-        for time in prange(result.shape[0]):
-            for lat in prange(result.shape[1]):
-                for lon in prange(result.shape[2]):
-                    cs = CubicSpline(heights[time, lat, lon], coeffs[time, lat, lon])
-                    result[time, lat, lon] = cs(height)
-                    
+        coef = ds["coeffs"].values.astype(np.float32)
+        shape = ds["u"].shape
+        n = len(LEVEL_TO_HEIGHT)
+        height = np.float32(height)
+        level_heights = np.array(list(LEVEL_TO_HEIGHT.values())).astype(np.float32)
+
+        result = _estimate_wind_speed_int(coef, height, shape, n=n, level_heights=level_heights)
+        time = ds.coords["time"].values
+        lat = ds.coords["latitude"].values
+        lon = ds.coords["longitude"].values
+        result = xr.DataArray(
+            result,
+            dims = ["time", "latitude", "longitude"],
+            coords=dict(
+                longitude=lon,
+                latitude=lat,
+                time=time
+            )
+        )
+
         return result
-        # return result.drop_vars("coeff")  # remove unnecessary coordinate
 
     def _estimate_cutout(
         self,
