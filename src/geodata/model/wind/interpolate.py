@@ -34,7 +34,7 @@ except ImportError:
 
 @njit(parallel=True)
 def _compute_wind_speed_int(
-    heights: np.ndarray, speeds: np.ndarray
+    heights: np.ndarray, speeds: np.ndarray, height: int
 ) -> tuple[np.ndarray, np.ndarray]:
     """Compute wind speed from heights and speeds.
 
@@ -46,18 +46,22 @@ def _compute_wind_speed_int(
         tuple[np.ndarray, np.ndarray]: Tuple of coefficients (alpha, beta) and residuals.
     """
     # pylint: disable=not-an-iterable
-    n_coeffs = 4
-    coeffs = np.empty(shape=heights.shape[:-1] + (heights.shape[-1] - 1, n_coeffs))
+    # n_coeffs = 4
+    # coeffs = np.empty(shape=heights.shape[:-1] + (heights.shape[-1] - 1, n_coeffs))
 
-    for time in prange(heights.shape[0]):
-        for lat in prange(heights.shape[1]):
-            for lon in prange(heights.shape[2]):
-                h = heights[time, lat, lon]
-                v = speeds[time, lat, lon]
-                cs = CubicSpline(h, v)
-                coeffs[time, lat, lon] = cs.c.T
+    # for lon in prange(heights.shape[0]):
+    #     for lat in prange(heights.shape[1]):
+    #         for time in prange(heights.shape[2]):
+    #             h = heights[time, lat, lon]
+    #             v = speeds[time, lat, lon]
+    #             cs = CubicSpline(h, v)
+    #             coeffs[time, lat, lon] = cs.c.T
                 
-    return coeffs
+    # return coeffs
+    cs = CubicSpline(heights, speeds, axis=1)
+    interpolated_wind_speed = cs(height)
+    
+    return interpolated_wind_speed
 
 
 class WindInterpolationModel(WindBaseModel):
@@ -88,9 +92,7 @@ class WindInterpolationModel(WindBaseModel):
     def _prepare_fn(
         self,
         ds: xr.Dataset,
-        compute_lml: bool = True,
         half_precision: bool = True,
-        # compute_residuals: bool = True,
     ) -> xr.Dataset:
         """Compute wind speed from for MERRA2 dataset.
 
@@ -103,11 +105,9 @@ class WindInterpolationModel(WindBaseModel):
         Returns:
             xr.Dataset: Dataset with wind speed.
         """
-
-        disph = ds["disph"].values
-
+        return ds
         variables = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
-        heights = np.array([HEIGHTS[f] for f in variables]) - disph[..., np.newaxis]
+        heights = np.array([HEIGHTS[f] for f in variables])
 
         logger.debug("Selected variables: %s", variables)
         logger.debug("Shape of heights: %s", heights.shape)
@@ -117,14 +117,6 @@ class WindInterpolationModel(WindBaseModel):
                 "Dataset does not contain any other useable heights other than lml"
             )
 
-        if compute_lml:
-            hlml = ds["hlml"].values
-            variables.append("ulml")
-            heights = np.concatenate(
-                (heights, (hlml - disph)[..., np.newaxis]), axis=-1
-            )
-        log_heights = np.log(heights, out=-np.ones_like(heights), where=heights > 0)
-
         speeds = []
         for var in variables:
             speeds.append(
@@ -132,13 +124,8 @@ class WindInterpolationModel(WindBaseModel):
             )
         speeds = np.stack(speeds, axis=-1).astype(heights.dtype)
 
-        # coeffs, residuals = _compute_wind_speed_ext(log_heights, speeds)
-        coeffs = _compute_wind_speed_int(log_heights, speeds)
+        coeffs = _compute_wind_speed_int(heights, speeds)
 
-        # if half_precision:
-        #     coeffs = coeffs.astype("float32")
-        #     residuals = residuals.astype("float32")
-        # ds = ds.assign_coords(coeff=["alpha", "beta"])
         if half_precision:
             coeffs = coeffs.astype("float32")
         ds = ds.assign_coords(coeff=["coeffs"])
@@ -165,13 +152,14 @@ class WindInterpolationModel(WindBaseModel):
         end_time = pd.Timestamp(
             year=years.stop, month=months.stop, day=31, hour=23, minute=59, second=59
         )
-
+        print(self.files)
         ds = xr.open_mfdataset(self.files)
-
+        print(1)
         if xs is None:
             xs = ds.coords["lon"]
         if ys is None:
             ys = ds.coords["lat"]
+        return
 
         ds = ds.sel(lon=xs, lat=ys, time=slice(start_time, end_time))
 
@@ -179,22 +167,21 @@ class WindInterpolationModel(WindBaseModel):
             logger.info("Using real data for estimation at height %d", height)
             return (ds[f"u{height}m"] ** 2 + ds[f"v{height}m"] ** 2) ** 0.5
 
-        # alpha = ds["coeffs"][..., 0]
-        # beta = ds["coeffs"][..., 1]
-
-        # exp = np.exp(-beta / alpha)
-        # disph = ds["disph"]
-        # mask1 = exp > 0
-        # mask2 = disph > 0
-
-        # h = np.where(mask1, 50, height) # decreasing wind speed over heights
-        # h = np.where(mask2, 50, height) # displacement height is greater than 0
-
-        # result = alpha * np.log((h - disph) / exp)
-        return ds["coeffs"]
+        u_var = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
+        v_var = [u.replace("u", "v") for u in u_var]
+        print(u_var, v_var)
+        return
+        variables = [f for f in HEIGHTS if f in ds and f.replace("u", "v") in ds]
+        heights = np.array([HEIGHTS[f] for f in variables])
         coeffs = ds["coeffs"]
-        h_index = np.argmin(np.abs(HEIGHTS - height))
-        return ds["interpolated_speeds"][..., h_index]
+        result = np.empty_like(ds['time'])
+        for time in prange(result.shape[0]):
+            for lat in prange(result.shape[1]):
+                for lon in prange(result.shape[2]):
+                    cs = CubicSpline(heights[time, lat, lon], coeffs[time, lat, lon])
+                    result[time, lat, lon] = cs(height)
+                    
+        return result
         # return result.drop_vars("coeff")  # remove unnecessary coordinate
 
     def _estimate_cutout(
