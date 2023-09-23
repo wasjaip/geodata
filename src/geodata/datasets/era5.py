@@ -1,5 +1,5 @@
 # Copyright 2016-2017 Jonas Hoersch (FIAS), Tom Brown (FIAS), Markus Schlott (FIAS)
-# Copyright 2022 Xiqiang Liu
+# Copyright 2022-2023 Xiqiang Liu
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -12,18 +12,13 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-
-"""
-GEODATA
-
-Geospatial Data Collection and "Pre-Analysis" Tools
-"""
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import glob
 import logging
 import os
+from pathlib import Path
+from typing import Iterable
 
 import numpy as np
 import xarray as xr
@@ -42,6 +37,7 @@ except ImportError:
 
 # Model and Projection Settings
 projection = "latlong"
+L137_LEVELS = range(131, 138)
 
 
 def _rename_and_clean_coords(ds: xr.Dataset, add_lon_lat: bool = True):
@@ -73,6 +69,73 @@ def _rename_and_clean_coords(ds: xr.Dataset, add_lon_lat: bool = True):
     return ds
 
 
+def api_complete(
+    toDownload: Iterable,
+    bounds: Iterable,
+    download_vars: Iterable,
+    product: str,
+    product_type: str,
+    downloadedFiles: list,
+):
+    """Sample request:
+
+    c.retrieve('reanalysis-era5-complete', {
+       'date'    : '20130101',
+       'levelist': '1/10/100/137',
+       'levtype' : 'ml',
+       'param'   : '130,  # Full information at https://apps.ecmwf.int/codes/grib/param-db/
+       'stream'  : 'oper',  # Denotes ERA5. Ensemble members are selected by 'enda'
+       'time'    : '00/to/23/by/6',
+       'type'    : 'an',
+       'grid'    : '1.0/1.0',
+       'format'  : 'netcdf',
+    }, 'save_path.nc')  # Output file. Adapt as you wish.
+    """
+
+    if not has_cdsapi:
+        raise RuntimeError(
+            "Need installed cdsapi python package available from "
+            "https://cds.climate.copernicus.eu/api-how-to"
+        )
+
+    if len(toDownload) == 0:
+        logger.info("All ERA5 files for this dataset have been downloaded.")
+    else:
+        logger.info("Preparing to download %s files.", str(len(toDownload)))
+
+        for f in toDownload:
+            filepath = Path(f[1])
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+
+            full_request = {
+                "date": f"{filepath.parent.parent.name}{filepath.parent.name}{filepath.stem}",
+                "levelist": "/".join(str(i) for i in L137_LEVELS),
+                "levtype": "ml",
+                "param": "/".join(str(var) for var in download_vars),
+                "stream": "oper",
+                "time": "00/to/23",
+                "type": "an",
+                "grid": "0.25/0.25",  # NOTE: We want the highest resolution possible
+                "format": "netcdf",
+            }
+
+            if bounds is not None:
+                full_request["area"] = bounds
+
+            full_result = cdsapi.Client().retrieve(
+                product, full_request, target=filepath
+            )
+
+            logger.info(
+                "Downloading metadata request for %s variables to %s",
+                len(full_request["param"]),
+                f,
+            )
+            full_result.download(f[1])
+            logger.info("Successfully downloaded to %s", f[1])
+            downloadedFiles.append((f[0], f[1]))
+
+
 def api_hourly_era5(
     toDownload: list, bounds, download_vars, product, product_type, downloadedFiles
 ):
@@ -101,65 +164,8 @@ def api_hourly_era5(
                 "format": "netcdf",
                 "year": query_year,
                 "month": query_month,
-                "day": [
-                    "01",
-                    "02",
-                    "03",
-                    "04",
-                    "05",
-                    "06",
-                    "07",
-                    "08",
-                    "09",
-                    "10",
-                    "11",
-                    "12",
-                    "13",
-                    "14",
-                    "15",
-                    "16",
-                    "17",
-                    "18",
-                    "19",
-                    "20",
-                    "21",
-                    "22",
-                    "23",
-                    "24",
-                    "25",
-                    "26",
-                    "27",
-                    "28",
-                    "29",
-                    "30",
-                    "31",
-                ],
-                "time": [
-                    "00:00",
-                    "01:00",
-                    "02:00",
-                    "03:00",
-                    "04:00",
-                    "05:00",
-                    "06:00",
-                    "07:00",
-                    "08:00",
-                    "09:00",
-                    "10:00",
-                    "11:00",
-                    "12:00",
-                    "13:00",
-                    "14:00",
-                    "15:00",
-                    "16:00",
-                    "17:00",
-                    "18:00",
-                    "19:00",
-                    "20:00",
-                    "21:00",
-                    "22:00",
-                    "23:00",
-                ],
+                "day": [f"{d+1:02d}" for d in range(31)],  # 01:31
+                "time": [f"{h:02d}:00" for h in range(24)],  # 00:23
                 "variable": download_vars,
             }
 
@@ -397,7 +403,7 @@ weather_data_config = {
         fn=os.path.join(era5_dir, "{year}/{month:0>2}/wind_solar_hourly.nc"),
         product="reanalysis-era5-single-levels",
         product_type="reanalysis",
-        variables=[
+        keywords=[
             "100m_u_component_of_wind",
             "100m_v_component_of_wind",
             "2m_temperature",
@@ -411,6 +417,36 @@ weather_data_config = {
             "forecast_surface_roughness",
             "geopotential",
         ],
+        variables=[
+            "u100",
+            "v100",
+            "t2m",
+            "ro",
+            "stl4",
+            "ssr",
+            "sp",
+            "ssrd",
+            "tisr",
+            "fdir",
+            "fsr",
+            "z",
+        ],
+    ),
+    "wind_3d_hourly": dict(
+        api_func=api_complete,
+        file_granularity="daily",
+        tasks_func=tasks_monthly_era5,
+        meta_prepare_func=prepare_meta_era5,
+        prepare_func=prepare_month_era5,
+        url="",  # Not used, maintained for compatibility with `daily` granularity
+        template=os.path.join(
+            era5_dir, "wind_3d_hourly/{year}/{month:02d}/{day:02d}.nc"
+        ),
+        fn=os.path.join(era5_dir, "wind_3d_hourly/{year}/{month:02d}/{day:02d}.nc"),
+        product="reanalysis-era5-complete",
+        product_type="reanalysis",
+        keywords=[131, 132],
+        variables=["u", "v"],
     ),
     "wind_solar_monthly": dict(
         api_func=api_monthly_era5,
@@ -422,7 +458,7 @@ weather_data_config = {
         fn=os.path.join(era5_dir, "{year}/{month:0>2}/wind_solar_monthly.nc"),
         product="reanalysis-era5-single-levels-monthly-means",
         product_type="monthly_averaged_reanalysis",
-        variables=[
+        keywords=[
             "100m_u_component_of_wind",
             "100m_v_component_of_wind",
             "2m_temperature",
@@ -435,6 +471,20 @@ weather_data_config = {
             "total_sky_direct_solar_radiation_at_surface",
             "forecast_surface_roughness",
             "geopotential",
+        ],
+        variables=[
+            "u100",
+            "v100",
+            "t2m",
+            "ro",
+            "stl4",
+            "ssr",
+            "sp",
+            "ssrd",
+            "tisr",
+            "fdir",
+            "fsr",
+            "z",
         ],
     ),
 }
