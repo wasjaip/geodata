@@ -14,7 +14,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from typing import Optional
-from scipy.interpolate import CubicSpline
 
 import numpy as np
 import pandas as pd
@@ -227,30 +226,36 @@ class WindInterpolationModel(WindBaseModel):
         ds = xr.open_mfdataset(self.files)
 
         if xs is None:
-            xs = ds.coords["lon"]
+            xs = ds.coords["longitude"]
         if ys is None:
-            ys = ds.coords["lat"]
+            ys = ds.coords["latitude"]
 
-        ds = ds.sel(x=xs, y=ys, time=slice(start_time, end_time))
+        ds = ds.sel(longitude=xs, latitude=ys, time=slice(start_time, end_time))
 
         if height in HEIGHTS.values() and use_real_data:
             logger.info("Using real data for estimation at height %d", height)
             return (ds[f"u{height}m"] ** 2 + ds[f"v{height}m"] ** 2) ** 0.5
 
-        alpha = ds["coeffs"][..., 0]
-        beta = ds["coeffs"][..., 1]
+        coef = ds["coeffs"].values.astype(np.float32)
+        shape = ds["u"].shape
+        n = len(LEVEL_TO_HEIGHT)
+        height = np.float32(height)
+        level_heights = np.array(list(LEVEL_TO_HEIGHT.values())).astype(np.float32)
 
-        exp = np.exp(-beta / alpha)
-        disph = ds["disph"]
-        mask1 = exp > 0
-        mask2 = disph > 0
+        result = _estimate_wind_speed_int(coef, height, shape, n=n, level_heights=level_heights)
+        time = ds.coords["time"].values
+        lat = ds.coords["latitude"].values
+        lon = ds.coords["longitude"].values
+        result = xr.DataArray(
+            result,
+            dims = ["time", "latitude", "longitude"],
+            coords=dict(
+                longitude=lon,
+                latitude=lat,
+                time=time
+            )
+        )
 
-        h = np.where(mask1, 50, height) # decreasing wind speed over heights
-        h = np.where(mask2, 50, height) # displacement height is greater than 0
-        
-        result = alpha * np.log((h - disph) / exp)
-
-        return result.drop_vars("coeff")  # remove unnecessary coordinate
-
+        return result
 
     # pylint: enable=arguments-differ
