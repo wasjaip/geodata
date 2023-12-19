@@ -1,15 +1,17 @@
-GEODATA
--
+# Geodata
 
 [![DOI](https://zenodo.org/badge/218690319.svg)](https://zenodo.org/badge/latestdoi/218690319)
 
-**Geodata** is a Python library of geospatial data collection and "pre-analysis" tools. Geospatial and gridded datasets of physical variables are ubiquitous and increasingly high resolution. Long time-series gridded datasets can be generated as part of earth system models, and due to their geographic coverage they can have wider applications, including in engineering and social sciences. Geospatial (GIS) files can encode various physical, social, economic, and political data. However, working with these datasets often has significant startup costs due to their diverse sources, data formats, resolutions, and large file sizes.
+**Geodata** - это библиотека на языке Python для сбора и предварительного анализа геопространственных данных. Данная библиотека предоставляет инструменты для работы с геопространственными и растровыми наборами данных физических переменных. Эти данные широко распространены и имеют все более высокое разрешение. Геоданные позволяют упростить сбор и использование геопространственных наборов данных путем создания общих скриптов для "готовых к анализу" физических переменных.
 
-Geodata streamlines the collection and use of geospatial datasets through the creation of shared scripts for “analysis-ready” physical variables. Its purpose is to make it easier for researchers to identify, download, and work with new sources of geospatial data. Additionally, with a minimal amount of data consistency checks and metadata information, when one researcher goes through this exercise, everyone benefits.
+## Особенности
 
-Geodata builds off the **[atlite](https://github.com/PyPSA/atlite)** library, which converts weather data (such as wind speeds, solar radiation, temperature and runoff) into power systems data (such as wind power, solar power, hydro power and heating demand time series). Geodata retains the power systems data functionality of atlite. 
+- **Простота использования:** Легко идентифицировать, загружать и работать с новыми источниками геопространственных данных.
+- **Совместимость:** Базируется на библиотеке **[atlite](https://github.com/PyPSA/atlite)** для преобразования метеоданных в данные систем энергосистем.
+- **Графическое представление:** Иллюстрация процесса работы библиотеки:
 
-![png](images/geodata_workflow_chart.png)
+  ![График рабочего процесса Geodata](images/geodata_workflow_chart.png)
+
 
 
 
