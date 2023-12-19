@@ -2,23 +2,18 @@
 
 [![DOI](https://zenodo.org/badge/218690319.svg)](https://zenodo.org/badge/latestdoi/218690319)
 
-**Geodata** - это библиотека на языке Python для сбора и предварительного анализа геопространственных данных. Данная библиотека предоставляет инструменты для работы с геопространственными и растровыми наборами данных физических переменных. Эти данные широко распространены и имеют все более высокое разрешение. Геоданные позволяют упростить сбор и использование геопространственных наборов данных путем создания общих скриптов для "готовых к анализу" физических переменных.
+**Geodata** - это библиотека на языке Python для сбора и предварительного анализа геопространственных данных. Геопространственные и растровые наборы данных физических переменных широко распространены и имеют все более высокое разрешение. Долгосрочные временные ряды геопространственных данных могут быть созданы в рамках моделей системы Земли, и из-за их географического охвата они могут иметь более широкие применения, включая инженерные и социальные науки. Геопространственные (ГИС) файлы могут закодировать различные физические, социальные, экономические и политические данные. Однако работа с этими наборами данных часто связана с значительными начальными затратами из-за их разнообразных источников, форматов данных, разрешений и больших размеров файлов.
 
-## Особенности
+Geodata упрощает сбор и использование геопространственных наборов данных через создание общих сценариев для "готовых к анализу" физических переменных. Его цель - облегчить идентификацию, загрузку и работу с новыми источниками геопространственных данных для исследователей. Кроме того, при минимальном количестве проверок согласованности данных и метаданных, когда один исследователь проходит через этот процесс, это приносит пользу всем.
 
-- **Простота использования:** Легко идентифицировать, загружать и работать с новыми источниками геопространственных данных.
-- **Совместимость:** Базируется на библиотеке **[atlite](https://github.com/PyPSA/atlite)** для преобразования метеоданных в данные систем энергосистем.
-- **Графическое представление:** Иллюстрация процесса работы библиотеки:
+Geodata основана на библиотеке **[atlite](https://github.com/PyPSA/atlite)**, которая преобразует метеоданные (такие как скорость ветра, солнечная радиация, температура и сток) в данные систем энергосистем (такие как энергия ветра, солнечная энергия, гидроэнергия и временные ряды потребления тепла). Geodata сохраняет функциональность данных систем энергосистем atlite.
 
-  ![График рабочего процесса Geodata](images/geodata_workflow_chart.png)
+![png](images/geodata_workflow_chart.png)
 
+## Установка
 
-
-
-## Installation
-
-**Geodata** has been tested to run with python3 (>= 3.9). Read the [package setup instructions](doc/general/packagesetup.md) to configure and install the package.
-Installation will also install the following dependencies:
+**Geodata** протестирована для запуска с python3 (>= 3.9). Прочтите [инструкции по установке пакета](doc/general/packagesetup.md), чтобы настроить и установить пакет.
+Установка также установит следующие зависимости:
 * `numpy`
 * `scipy`
 * `pandas`
@@ -37,29 +32,22 @@ Installation will also install the following dependencies:
 * `shapely`
 * `progressbar2`
 
-## Documentation
+## Документация
 
-Read the [Introduction to Geodata](doc/general/Introduction.md) documentation to get started. 
+Прочтите [Введение в Geodata](doc/general/Introduction.md), чтобы начать.
 
-Read the [Table of Contents](doc/general/tableofcontents.md) to navigate through the documentation. 
+Прочтите [Содержание](doc/general/tableofcontents.md) для навигации по документации.
 
-You may also jump directly to [Example Notebooks](example_notebooks).
+Также вы можете перейти непосредственно к [Примерам использования](example_notebooks).
 
+## Внесение вклада
 
+Мы приветствуем предложения по расширению функциональности и выявлению ошибок. Пожалуйста, создавайте проблемы (issues) или свяжитесь с [авторами](https://mdavidson.org/about/) Geodata.
 
-## Contributing
+## Лицензия
 
-We welcome suggestions for feature enhancements and the identification of bugs. Please make an issue or contact the [authors](https://mdavidson.org/about/) of geodata.
+Geodata распространяется под лицензией GNU GENERAL PUBLIC LICENSE Version 3 (2007). Эта программа является свободным программным обеспечением; вы можете перераспределять ее и/или изменять в соответствии с условиями GNU General Public License, опубликованной Free Software Foundation; либо версией 3 Лицензии, либо (по вашему выбору) любой более поздней версией. Эта программа распространяется в надежде, что она будет полезной, но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии КОММЕРЧЕСКОГО КАЧЕСТВА или ПРИГОДНОСТИ ДЛЯ ОПРЕДЕЛЕННОЙ ЦЕЛИ. См. [GNU General Public License](/LICENSE.txt) для получения дополнительной информации.
 
+## Поддержка
 
-## License
-
-Geodata is licensed under the GNU GENERAL PUBLIC LICENSE Version 3 (2007). This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the [GNU General Public License](/LICENSE.txt) for more details.
-
-## Support
-
-The Geodata team would like to thank the Center for Global Transformation at UC San Diego for providing financial support to the project.
-
-
-
-
+Команда Geodata выражает благодарность Центру глобального трансформации Университета Калифорнии в Сан-Диего за предоставление финансовой поддержки проекта.
