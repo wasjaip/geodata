@@ -1,24 +1,30 @@
-Back to the [Table of Contents](https://github.com/GeodataTools/geodata/blob/master/doc/general/tableofcontents.md).
+# Настройка пакета Geodata
 
-# Geodata Package Setup
+Это руководство охватывает установку и настройку пакета **geodata** для использования на локальной машине и в облаке.
 
-This guide covers how to install and configure the **geodata** package for local and cloud use.
-
-Make sure that you have the following **required** software set up:
+Убедитесь, что у вас установлено следующее **обязательное** программное обеспечение:
 
 * [Python 3](https://www.python.org/downloads/)
-* [Conda](https://docs.conda.io/projects/conda/en/latest/) (miniconda or anaconda) or [pip](https://pip.pypa.io/en/stable/installation/) Python package management system.
+* [Conda](https://docs.conda.io/projects/conda/en/latest/) (miniconda или anaconda) или [pip](https://pip.pypa.io/en/stable/installation/) - система управления пакетами Python.
 
 
-Table of Contents:
-- [Downloading Geodata](#downloading-geodata)
-- [Configuring File Storage](#configuring-file-storage)
-- [Building Geodata](#building-geodata)
-  - [Recommended Conda Installation Guide](#the-recommended-way-installation-in-conda-environment)
-  - [macOS Pip Guide](#macos-installation-with-pip)
-  - [Windows Pip Guide](#windows-installation-with-pip)
-    - [pipwin instruction](#option-i-pipwin)
-    - [wheel file instruction](#option-ii-wheel-files)
+Содержание:
+- [Скачивание Geodata](#downloading-geodata)
+- [Настройка хранения файлов](#configuring-file-storage)
+- [Сборка Geodata](#building-geodata)
+  - [Рекомендованное руководство по установке с использованием Conda](#the-recommended-way-installation-in-conda-environment)
+  - [Руководство по Pip для macOS](#macos-installation-with-pip)
+  - [Руководство по Pip для Windows](#windows-installation-with-pip)
+    - [Инструкции по pipwin](#option-i-pipwin)
+    - [Инструкции по файлам wheel](#option-ii-wheel-files)
+
+## Скачивание Geodata
+
+Чтобы скачать **geodata**, откройте терминал/командную строку, перейдите в рабочий каталог и выполните следующие команды: (Если у вас нет установленного Git, вы можете также скачать его по этой [ссылке](https://github.com/GeodataTools/geodata/archive/refs/heads/master.zip).
+
+```bash
+git clone https://github.com/GeodataTools/geodata.git
+cd geodata
 
 ## Downloading Geodata
 
@@ -29,9 +35,8 @@ git clone https://github.com/GeodataTools/geodata.git
 cd geodata
 ```
 
-## Configuring File Storage
-
-To configure where to store downloaded and processed files, define an environment variable called `GEODATA_ROOT` and save in your shell configuration files, such as `.bashrc` or `.zshrc`:
+## Настройка хранения файлов
+Для настройки места хранения загруженных и обработанных файлов определите переменную среды с именем GEODATA_ROOT и сохраните ее в файлах конфигурации оболочки, таких как .bashrc или .zshrc:
 ```bash
 export GEODATA_ROOT=<YOUR_PATH_HERE>
 ```
